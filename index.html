@@ -2,85 +2,65 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Registro Privado</title>
+    <title>Registro Seguro</title>
+    <!-- Librería de Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f4f4; }
         #appSection { display: none; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; }
     </style>
 </head>
 <body>
 
-    <!-- SECCIÓN DE LOGIN -->
+    <!-- Botón de Google -->
     <div id="loginSection">
-        <h2>Acceso Restringido</h2>
-        <input type="password" id="password" placeholder="Contraseña de acceso">
-        <button onclick="intentarAcceder()">Entrar</button>
+        <h2>Inicia sesión para acceder</h2>
+        <div id="g_id_onload"
+             data-client_id="692773787584-csvs916sel3hba7k0m12nu9ilaqu7evf.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
     </div>
 
-    <!-- SECCIÓN DE REGISTRO (Oculta al inicio) -->
+    <!-- Sección privada -->
     <div id="appSection">
         <h2>Registrar Persona</h2>
         <form id="registroForm">
             <input type="text" id="nombre" placeholder="Nombre" required>
             <input type="text" id="apellido" placeholder="Apellido" required>
             <input type="text" id="cedula" placeholder="Cédula" required>
-            <button type="submit">Guardar Datos</button>
+            <button type="submit">Enviar</button>
         </form>
-
-        <h2>Lista de Personas</h2>
-        <button onclick="cargarDatos()">Actualizar Lista</button>
-        <table>
-            <thead>
-                <tr><th>Nombre</th><th>Apellido</th><th>Cédula</th></tr>
-            </thead>
-            <tbody id="tablaCuerpo"></tbody>
-        </table>
     </div>
 
     <script>
-        // REEMPLAZA ESTO con tu URL de Apps Script
         const API_URL = "https://script.google.com/macros/s/AKfycbwElcCVPpbU91m3tEG4k6UYVqNYUzl-Lu8OR5-TL9nyx5T37lF4n_LldubUsFmf1uXKEw/exec";
+        let userEmail = "";
 
-        // Al cargar la página, verifica si ya hay una contraseña guardada
-        window.onload = () => {
-            if(localStorage.getItem("miClave")) {
-                document.getElementById("loginSection").style.display = "none";
-                document.getElementById("appSection").style.display = "block";
-                cargarDatos();
-            }
-        };
-
-        function intentarAcceder() {
-            const pass = document.getElementById("password").value;
-            localStorage.setItem("miClave", pass);
+        // Función que se activa al loguearse
+        function handleCredentialResponse(response) {
+            // Decodificamos el token (JWT) para sacar el correo
+            const base64Url = response.credential.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = JSON.parse(window.atob(base64));
+            
+            userEmail = jsonPayload.email;
+            
+            // Ocultamos login, mostramos app
             document.getElementById("loginSection").style.display = "none";
             document.getElementById("appSection").style.display = "block";
-            cargarDatos();
+            alert("Bienvenido, " + userEmail);
         }
 
-        function cargarDatos() {
-            fetch(API_URL + "?llave=opcional") // Si usas el parámetro llave
-                .then(r => r.json())
-                .then(datos => {
-                    const tbody = document.getElementById("tablaCuerpo");
-                    tbody.innerHTML = "";
-                    datos.forEach(p => {
-                        tbody.innerHTML += `<tr><td>${p[0]}</td><td>${p[1]}</td><td>${p[2]}</td></tr>`;
-                    });
-                });
-        }
-
+        // Envío de datos
         document.getElementById("registroForm").addEventListener("submit", function(e) {
             e.preventDefault();
             const payload = {
                 nombre: document.getElementById("nombre").value,
                 apellido: document.getElementById("apellido").value,
                 cedula: document.getElementById("cedula").value,
-                password: localStorage.getItem("miClave")
+                email: userEmail
             };
 
             fetch(API_URL, {
@@ -90,12 +70,8 @@
             })
             .then(r => r.json())
             .then(res => {
-                if(res.estado === "exito") {
-                    alert("Registrado");
-                    cargarDatos();
-                } else {
-                    alert("Error: " + res.mensaje);
-                }
+                if(res.estado === "exito") alert("Guardado con éxito");
+                else alert("Error: " + res.mensaje);
             });
         });
     </script>
