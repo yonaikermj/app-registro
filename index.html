@@ -16,7 +16,30 @@
     </style>
 </head>
 <body>
+    <!-- Pon esto en tu HTML antes de la tabla -->
+<div id="loginSection">
+    <input type="password" id="password" placeholder="Contraseña de acceso">
+    <button onclick="intentarAcceder()">Entrar</button>
+</div>
 
+<div id="appSection" style="display:none;">
+    <!-- Aquí va tu formulario de registro y la tabla que ya tenías -->
+</div>
+
+<script>
+function intentarAcceder() {
+    const pass = document.getElementById("password").value;
+    // Guardamos la clave para que no la pida siempre
+    localStorage.setItem("miClave", pass);
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("appSection").style.display = "block";
+    cargarDatos();
+}
+
+// En tu función fetch de registro, simplemente envías la contraseña:
+// const nuevosDatos = { nombre:..., apellido:..., cedula:..., password: localStorage.getItem("miClave") };
+</script>
+    
     <h2>Registro de Personas</h2>
 
     <!-- Formulario para agregar datos -->
