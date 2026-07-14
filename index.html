@@ -73,27 +73,29 @@
 
         // 1. FUNCIÓN PARA LEER Y MOSTRAR LOS DATOS
         function cargarDatos() {
-            fetch(API_URL)
-                .then(respuesta => respuesta.json())
-                .then(datos => {
-                    const tbody = document.getElementById("cuerpoTabla");
-                    tbody.innerHTML = ""; // Limpiamos la tabla antes de cargar
+    // 1. Hacemos la petición al servidor (Apps Script)
+    fetch(API_URL)
+        .then(response => response.json()) // Convertimos la respuesta a formato JSON
+        .then(datos => {
+            const cuerpoTabla = document.getElementById("cuerpoTabla");
+            cuerpoTabla.innerHTML = ""; // Limpiamos la tabla antes de cargar para evitar duplicados
 
-                    // Omitimos la primera fila (index 0) porque son los encabezados (Nombre, Apellido, Cédula)
-                    for (let i = 1; i < datos.length; i++) {
-                        let fila = datos[i];
-                        tbody.innerHTML += `
-                            <tr>
-                                <td>${fila[0]}</td>
-                                <td>${fila[1]}</td>
-                                <td>${fila[2]}</td>
-                            </tr>
-                        `;
-                    }
-                })
-                .catch(error => console.error("Error al cargar:", error));
-        }
+            // 2. Recorremos los datos (datos[0] es la cabecera, así que saltamos la fila 0)
+            datos.forEach((fila, index) => {
+                if (index === 0) return; 
 
+                // 3. Creamos una nueva fila en la tabla
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${fila[0]}</td>
+                    <td>${fila[1]}</td>
+                    <td>${fila[2]}</td>
+                `;
+                cuerpoTabla.appendChild(tr);
+            });
+        })
+        .catch(error => console.error('Error al cargar datos:', error));
+}
         // 2. FUNCIÓN PARA GUARDAR NUEVOS DATOS
         document.getElementById("registroForm").addEventListener("submit", function(e) {
             e.preventDefault();
