@@ -20,7 +20,8 @@
         <h2>Inicia sesión para acceder</h2>
         <div id="g_id_onload"
              data-client_id="692773787584-csvs916sel3hba7k0m12nu9ilaqu7evf.apps.googleusercontent.com"
-             data-callback="handleCredentialResponse">
+             data-callback="handleCredentialResponse"
+             data-auto_select="true">
         </div>
         <div class="g_id_signin" data-type="standard"></div>
     </div>
@@ -33,6 +34,7 @@
             <input type="text" id="apellido" placeholder="Apellido" required>
             <input type="text" id="cedula" placeholder="Cédula" required>
             <button type="submit">Enviar</button>
+            <button onclick="cargarDatos()" style="background: #007bff; color: white; border: none; padding: 10px; cursor: pointer;">Refrescar Tabla</button>
         </form>
     </div>
 
@@ -73,28 +75,35 @@
 
         // 1. FUNCIÓN PARA LEER Y MOSTRAR LOS DATOS
         function cargarDatos() {
-    // 1. Hacemos la petición al servidor (Apps Script)
+    console.log("Intentando cargar datos desde:", API_URL); // Verás esto en la consola F12
+    
     fetch(API_URL)
-        .then(response => response.json()) // Convertimos la respuesta a formato JSON
+        .then(response => {
+            if (!response.ok) { throw new Error('Error en la respuesta del servidor: ' + response.status); }
+            return response.json();
+        })
         .then(datos => {
+            console.log("Datos recibidos:", datos); // Verás los datos aquí en la consola
             const cuerpoTabla = document.getElementById("cuerpoTabla");
-            cuerpoTabla.innerHTML = ""; // Limpiamos la tabla antes de cargar para evitar duplicados
+            cuerpoTabla.innerHTML = ""; 
 
-            // 2. Recorremos los datos (datos[0] es la cabecera, así que saltamos la fila 0)
+            // Verificamos si hay datos
+            if(datos.length <= 1) {
+                cuerpoTabla.innerHTML = "<tr><td colspan='3'>No hay datos en la hoja</td></tr>";
+                return;
+            }
+
             datos.forEach((fila, index) => {
-                if (index === 0) return; 
-
-                // 3. Creamos una nueva fila en la tabla
+                if (index === 0) return; // Saltamos encabezados
                 const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${fila[0]}</td>
-                    <td>${fila[1]}</td>
-                    <td>${fila[2]}</td>
-                `;
+                tr.innerHTML = `<td>${fila[0]}</td><td>${fila[1]}</td><td>${fila[2]}</td>`;
                 cuerpoTabla.appendChild(tr);
             });
         })
-        .catch(error => console.error('Error al cargar datos:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Error al cargar datos: " + error.message);
+        });
 }
         // 2. FUNCIÓN PARA GUARDAR NUEVOS DATOS
         document.getElementById("registroForm").addEventListener("submit", function(e) {
