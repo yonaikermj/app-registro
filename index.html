@@ -34,6 +34,20 @@
         </form>
     </div>
 
+    <!-- Tabla donde se mostrarán los datos -->
+    <table id="tablaDatos">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Cédula</th>
+            </tr>
+        </thead>
+        <tbody id="cuerpoTabla">
+            <!-- Los datos de Google Sheets aparecerán aquí -->
+        </tbody>
+    </table>
+
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbwElcCVPpbU91m3tEG4k6UYVqNYUzl-Lu8OR5-TL9nyx5T37lF4n_LldubUsFmf1uXKEw/exec";
         let userEmail = "";
@@ -53,26 +67,52 @@
             alert("Bienvenido, " + userEmail);
         }
 
-        // Envío de datos
-        document.getElementById("registroForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const payload = {
+        function cargarDatos() {
+            fetch(API_URL)
+                .then(respuesta => respuesta.json())
+                .then(datos => {
+                    const tbody = document.getElementById("cuerpoTabla");
+                    tbody.innerHTML = ""; // Limpiamos la tabla antes de cargar
+
+                    // Omitimos la primera fila (index 0) porque son los encabezados (Nombre, Apellido, Cédula)
+                    for (let i = 1; i < datos.length; i++) {
+                        let fila = datos[i];
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${fila[0]}</td>
+                                <td>${fila[1]}</td>
+                                <td>${fila[2]}</td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => console.error("Error al cargar:", error));
+        }
+
+        // 2. FUNCIÓN PARA GUARDAR NUEVOS DATOS
+        document.getElementById("formulario").addEventListener("submit", function(event) {
+            event.preventDefault(); // Evita que la página se recargue
+
+            // Recolectamos los datos escritos
+            const nuevosDatos = {
                 nombre: document.getElementById("nombre").value,
                 apellido: document.getElementById("apellido").value,
-                cedula: document.getElementById("cedula").value,
-                email: userEmail
+                cedula: document.getElementById("cedula").value
             };
 
+            // Enviamos los datos a Google Sheets
             fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
+                method: "POST",
+                body: JSON.stringify(nuevosDatos),
+                // Usamos text/plain para evitar errores de bloqueo (CORS) en el navegador
+                headers: { "Content-Type": "text/plain" }
             })
-            .then(r => r.json())
-            .then(res => {
-                if(res.estado === "exito") alert("Guardado con éxito");
-                else alert("Error: " + res.mensaje);
-            });
+            .then(() => {
+                alert("¡Datos guardados con éxito!");
+                document.getElementById("formulario").reset(); // Limpia los campos
+                cargarDatos(); // Vuelve a cargar la tabla para mostrar el nuevo registro
+            })
+            .catch(error => console.error("Error al guardar:", error));
         });
     </script>
 </body>
