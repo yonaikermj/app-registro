@@ -88,6 +88,29 @@
                 })
                 .catch(error => console.error("Error al cargar:", error));
         }
+        // 1. FUNCIÓN PARA LEER Y MOSTRAR LOS DATOS
+        function cargarDatos() {
+            fetch(API_URL)
+                .then(respuesta => respuesta.json())
+                .then(datos => {
+                    const tbody = document.getElementById("cuerpoTabla");
+                    tbody.innerHTML = ""; // Limpiamos la tabla antes de cargar
+
+                    // Omitimos la primera fila (index 0) porque son los encabezados (Nombre, Apellido, Cédula)
+                    for (let i = 1; i < datos.length; i++) {
+                        let fila = datos[i];
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${fila[0]}</td>
+                                <td>${fila[1]}</td>
+                                <td>${fila[2]}</td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => console.error("Error al cargar:", error));
+        }
+
 
         // 2. FUNCIÓN PARA GUARDAR NUEVOS DATOS
         document.getElementById("formulario").addEventListener("submit", function(event) {
