@@ -8,6 +8,8 @@
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
         #appSection { display: none; }
+        #tablaDatos { display: none; }
+        #cuerpoTabla { display: none; }
         input, button { padding: 10px; margin: 5px 0; width: 100%; }
     </style>
 </head>
@@ -64,30 +66,11 @@
             // Ocultamos login, mostramos app
             document.getElementById("loginSection").style.display = "none";
             document.getElementById("appSection").style.display = "block";
+            document.getElementById("tablaDatos").style.display = "block";
+            document.getElementById("cuerpoTabla").style.display = "block";
             alert("Bienvenido, " + userEmail);
         }
 
-        function cargarDatos() {
-            fetch(API_URL)
-                .then(respuesta => respuesta.json())
-                .then(datos => {
-                    const tbody = document.getElementById("cuerpoTabla");
-                    tbody.innerHTML = ""; // Limpiamos la tabla antes de cargar
-
-                    // Omitimos la primera fila (index 0) porque son los encabezados (Nombre, Apellido, Cédula)
-                    for (let i = 1; i < datos.length; i++) {
-                        let fila = datos[i];
-                        tbody.innerHTML += `
-                            <tr>
-                                <td>${fila[0]}</td>
-                                <td>${fila[1]}</td>
-                                <td>${fila[2]}</td>
-                            </tr>
-                        `;
-                    }
-                })
-                .catch(error => console.error("Error al cargar:", error));
-        }
         // 1. FUNCIÓN PARA LEER Y MOSTRAR LOS DATOS
         function cargarDatos() {
             fetch(API_URL)
