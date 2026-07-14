@@ -2,123 +2,102 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prototipo de Registro</title>
+    <title>Registro Privado</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-        form { background: #f4f4f4; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        input { display: block; width: 95%; margin-bottom: 10px; padding: 8px; }
-        button { background: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 5px; }
-        button:hover { background: #218838; }
-        table { width: 100%; border-collapse: collapse; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #007bff; color: white; }
+        th { background-color: #f4f4f4; }
+        #appSection { display: none; }
     </style>
 </head>
 <body>
-    <!-- Pon esto en tu HTML antes de la tabla -->
-<div id="loginSection">
-    <input type="password" id="password" placeholder="Contraseña de acceso">
-    <button onclick="intentarAcceder()">Entrar</button>
-</div>
 
-<div id="appSection" style="display:none;">
-    <!-- Aquí va tu formulario de registro y la tabla que ya tenías -->
-</div>
+    <!-- SECCIÓN DE LOGIN -->
+    <div id="loginSection">
+        <h2>Acceso Restringido</h2>
+        <input type="password" id="password" placeholder="Contraseña de acceso">
+        <button onclick="intentarAcceder()">Entrar</button>
+    </div>
 
-<script>
-function intentarAcceder() {
-    const pass = document.getElementById("password").value;
-    // Guardamos la clave para que no la pida siempre
-    localStorage.setItem("miClave", pass);
-    document.getElementById("loginSection").style.display = "none";
-    document.getElementById("appSection").style.display = "block";
-    cargarDatos();
-}
+    <!-- SECCIÓN DE REGISTRO (Oculta al inicio) -->
+    <div id="appSection">
+        <h2>Registrar Persona</h2>
+        <form id="registroForm">
+            <input type="text" id="nombre" placeholder="Nombre" required>
+            <input type="text" id="apellido" placeholder="Apellido" required>
+            <input type="text" id="cedula" placeholder="Cédula" required>
+            <button type="submit">Guardar Datos</button>
+        </form>
 
-// En tu función fetch de registro, simplemente envías la contraseña:
-// const nuevosDatos = { nombre:..., apellido:..., cedula:..., password: localStorage.getItem("miClave") };
-</script>
-    
-    <h2>Registro de Personas</h2>
-
-    <!-- Formulario para agregar datos -->
-    <form id="formulario">
-        <input type="text" id="nombre" placeholder="Ingresa el Nombre" required>
-        <input type="text" id="apellido" placeholder="Ingresa el Apellido" required>
-        <input type="text" id="cedula" placeholder="Ingresa la Cédula" required>
-        <button type="submit">Guardar Datos</button>
-    </form>
-
-    <!-- Tabla donde se mostrarán los datos -->
-    <table id="tablaDatos">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Apellido</th>
-                <th>Cédula</th>
-            </tr>
-        </thead>
-        <tbody id="cuerpoTabla">
-            <!-- Los datos de Google Sheets aparecerán aquí -->
-        </tbody>
-    </table>
+        <h2>Lista de Personas</h2>
+        <button onclick="cargarDatos()">Actualizar Lista</button>
+        <table>
+            <thead>
+                <tr><th>Nombre</th><th>Apellido</th><th>Cédula</th></tr>
+            </thead>
+            <tbody id="tablaCuerpo"></tbody>
+        </table>
+    </div>
 
     <script>
-        // PEGA AQUÍ LA URL QUE COPIASTE DE GOOGLE APPS SCRIPT
+        // REEMPLAZA ESTO con tu URL de Apps Script
         const API_URL = "https://script.google.com/macros/s/AKfycbwElcCVPpbU91m3tEG4k6UYVqNYUzl-Lu8OR5-TL9nyx5T37lF4n_LldubUsFmf1uXKEw/exec";
 
-        // 1. FUNCIÓN PARA LEER Y MOSTRAR LOS DATOS
-        function cargarDatos() {
-            fetch(API_URL)
-                .then(respuesta => respuesta.json())
-                .then(datos => {
-                    const tbody = document.getElementById("cuerpoTabla");
-                    tbody.innerHTML = ""; // Limpiamos la tabla antes de cargar
+        // Al cargar la página, verifica si ya hay una contraseña guardada
+        window.onload = () => {
+            if(localStorage.getItem("miClave")) {
+                document.getElementById("loginSection").style.display = "none";
+                document.getElementById("appSection").style.display = "block";
+                cargarDatos();
+            }
+        };
 
-                    // Omitimos la primera fila (index 0) porque son los encabezados (Nombre, Apellido, Cédula)
-                    for (let i = 1; i < datos.length; i++) {
-                        let fila = datos[i];
-                        tbody.innerHTML += `
-                            <tr>
-                                <td>${fila[0]}</td>
-                                <td>${fila[1]}</td>
-                                <td>${fila[2]}</td>
-                            </tr>
-                        `;
-                    }
-                })
-                .catch(error => console.error("Error al cargar:", error));
+        function intentarAcceder() {
+            const pass = document.getElementById("password").value;
+            localStorage.setItem("miClave", pass);
+            document.getElementById("loginSection").style.display = "none";
+            document.getElementById("appSection").style.display = "block";
+            cargarDatos();
         }
 
-        // 2. FUNCIÓN PARA GUARDAR NUEVOS DATOS
-        document.getElementById("formulario").addEventListener("submit", function(event) {
-            event.preventDefault(); // Evita que la página se recargue
+        function cargarDatos() {
+            fetch(API_URL + "?llave=opcional") // Si usas el parámetro llave
+                .then(r => r.json())
+                .then(datos => {
+                    const tbody = document.getElementById("tablaCuerpo");
+                    tbody.innerHTML = "";
+                    datos.forEach(p => {
+                        tbody.innerHTML += `<tr><td>${p[0]}</td><td>${p[1]}</td><td>${p[2]}</td></tr>`;
+                    });
+                });
+        }
 
-            // Recolectamos los datos escritos
-            const nuevosDatos = {
+        document.getElementById("registroForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const payload = {
                 nombre: document.getElementById("nombre").value,
                 apellido: document.getElementById("apellido").value,
-                cedula: document.getElementById("cedula").value
+                cedula: document.getElementById("cedula").value,
+                password: localStorage.getItem("miClave")
             };
 
-            // Enviamos los datos a Google Sheets
             fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify(nuevosDatos),
-                // Usamos text/plain para evitar errores de bloqueo (CORS) en el navegador
-                headers: { "Content-Type": "text/plain" }
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
             })
-            .then(() => {
-                alert("¡Datos guardados con éxito!");
-                document.getElementById("formulario").reset(); // Limpia los campos
-                cargarDatos(); // Vuelve a cargar la tabla para mostrar el nuevo registro
-            })
-            .catch(error => console.error("Error al guardar:", error));
+            .then(r => r.json())
+            .then(res => {
+                if(res.estado === "exito") {
+                    alert("Registrado");
+                    cargarDatos();
+                } else {
+                    alert("Error: " + res.mensaje);
+                }
+            });
         });
-
-        // Al abrir la página, cargamos los datos inmediatamente
-        cargarDatos();
     </script>
 </body>
 </html>
