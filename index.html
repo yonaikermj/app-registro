@@ -94,32 +94,28 @@
                 .catch(error => console.error("Error al cargar:", error));
         }
 
-
         // 2. FUNCIÓN PARA GUARDAR NUEVOS DATOS
-        document.getElementById("formulario").addEventListener("submit", function(event) {
-            event.preventDefault(); // Evita que la página se recargue
-
-            // Recolectamos los datos escritos
-            const nuevosDatos = {
+        document.getElementById("registroForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const payload = {
                 nombre: document.getElementById("nombre").value,
                 apellido: document.getElementById("apellido").value,
-                cedula: document.getElementById("cedula").value
+                cedula: document.getElementById("cedula").value,
+                email: userEmail
             };
 
-            // Enviamos los datos a Google Sheets
             fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify(nuevosDatos),
-                // Usamos text/plain para evitar errores de bloqueo (CORS) en el navegador
-                headers: { "Content-Type": "text/plain" }
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
             })
-            .then(() => {
-                alert("¡Datos guardados con éxito!");
-                document.getElementById("formulario").reset(); // Limpia los campos
-                cargarDatos(); // Vuelve a cargar la tabla para mostrar el nuevo registro
-            })
-            .catch(error => console.error("Error al guardar:", error));
+            .then(r => r.json())
+            .then(res => {
+                if(res.estado === "exito") alert("Guardado con éxito");
+                else alert("Error: " + res.mensaje);
+            });
         });
+        
     </script>
 </body>
 </html>
