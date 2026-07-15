@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Registro</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .btn-logout { background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        /* Formulario */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn-submit { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; height: 39px; }
+        
+        /* Controles de Tabla */
+        .controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-search { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        .search-bar { flex-grow: 1; }
+        select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+
+        /* Tabla */
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+        th { background-color: #f8f9fa; color: #555; }
+        tr:nth-child(even) { background-color: #fdfdfd; }
+        
+        /* Paginación */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px; }
+        .btn-page { background: #e9ecef; border: 1px solid #ccc; padding: 5px 15px; border-radius: 5px; cursor: pointer; }
+        .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2 style="margin:0;">Panel de Registros</h2>
+            <div>
+                <span id="userDisplay" style="margin-right: 15px; font-weight: bold;"></span>
+                <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <!-- Sección Agregar -->
+        <div class="card">
+            <h3 style="margin-top:0;">Nuevo Ingreso</h3>
+            <form id="registroForm" class="form-grid">
+                <div><label>Nombre</label><input type="text" id="nombre" required></div>
+                <div><label>Apellido</label><input type="text" id="apellido" required></div>
+                <div><label>Cédula</label><input type="text" id="cedula" required></div>
+                <button type="submit" class="btn-submit" id="btnGuardar">Registrar</button>
+            </form>
+        </div>
+
+        <!-- Sección Tabla -->
+        <div class="card">
+            <div class="controls">
+                <button class="btn-search" onclick="aplicarFiltros()">Buscar</button>
+                <input type="text" id="searchInput" class="search-bar" placeholder="Buscar por Nombre, Apellido o Cédula...">
+                <select id="filterSelect" onchange="aplicarFiltros()">
+                    <option value="cedula">Ordenar por Cédula (Defecto)</option>
+                    <option value="reciente">Más Recientes</option>
+                    <option value="nombre">Por Nombre (A-Z)</option>
+                    <option value="apellido">Por Apellido (A-Z)</option>
+                </select>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTabla">
+                    <tr><td colspan="3" style="text-align:center;">Cargando datos...</td></tr>
+                </tbody>
+            </table>
+
+            <div class="pagination">
+                <button class="btn-page" id="btnPrev" onclick="cambiarPagina(-1)">Anterior</button>
+                <span id="pageIndicator">Página 1</span>
+                <button class="btn-page" id="btnNext" onclick="cambiarPagina(1)">Siguiente</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwElcCVPpbU91m3tEG4k6UYVqNYUzl-Lu8OR5-TL9nyx5T37lF4n_LldubUsFmf1uXKEw/exec";
+        const email = sessionStorage.getItem("userEmail");
+
+        // Validar seguridad del lado del cliente
+        if (!email) {
+            window.location.href = "index.html";
+        }
+        document.getElementById("userDisplay").innerText = email;
+
+        function cerrarSesion() {
+            sessionStorage.removeItem("userEmail");
+            window.location.href = "index.html";
+        }
+
+        // Variables de la tabla
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const rowsPerPage = 5; // Límite de personas por página
+
+        // 1. Obtener Datos del Servidor
+        function obtenerDatos() {
+            fetch(`${API_URL}?action=leer&email=${encodeURIComponent(email)}`)
+                .then(r => r.json())
+                .then(datos => {
+                    if (datos.error) {
+                        alert("Sesión no válida"); cerrarSesion(); return;
+                    }
+                    if (datos.length > 1) {
+                        allData = datos.slice(1); // Quita los encabezados de Google Sheets
+                        aplicarFiltros();
+                    } else {
+                        allData = [];
+                        document.getElementById("cuerpoTabla").innerHTML = "<tr><td colspan='3' style='text-align:center;'>No hay registros</td></tr>";
+                    }
+                })
+                .catch(err => console.error("Error cargando datos", err));
+        }
+
+        // 2. Lógica de Búsqueda y Ordenamiento
+        function aplicarFiltros() {
+            const query = document.getElementById("searchInput").value.toLowerCase();
+            const filter = document.getElementById("filterSelect").value;
+
+            // Búsqueda
+            if (query === "") {
+                filteredData = [...allData];
+            } else {
+                filteredData = allData.filter(row => 
+                    String(row[0]).toLowerCase().includes(query) || // Nombre
+                    String(row[1]).toLowerCase().includes(query) || // Apellido
+                    String(row[2]).toLowerCase().includes(query)    // Cédula
+                );
+            }
+
+            // Ordenamiento (Asumiendo indices Sheet: 0=Nombre, 1=Apellido, 2=Cédula)
+            if (query === "") {
+                // Si la barra está vacía, forzamos ordenar por Cédula como solicitaste
+                filteredData.sort((a, b) => String(a[2]).localeCompare(String(b[2])));
+            } else {
+                if (filter === "reciente") {
+                    filteredData.reverse(); // Invierte el arreglo para mostrar los últimos agregados
+                } else if (filter === "nombre") {
+                    filteredData.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+                } else if (filter === "apellido") {
+                    filteredData.sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+                } else if (filter === "cedula") {
+                    filteredData.sort((a, b) => String(a[2]).localeCompare(String(b[2])));
+                }
+            }
+
+            currentPage = 1; // Reinicia a la página 1 al buscar
+            renderizarTabla();
+        }
+
+        // 3. Dibujar Tabla y Paginación
+        function renderizarTabla() {
+            const tbody = document.getElementById("cuerpoTabla");
+            tbody.innerHTML = "";
+
+            if(filteredData.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;'>No se encontraron resultados</td></tr>";
+                document.getElementById("pageIndicator").innerText = `Página 1 de 1`;
+                document.getElementById("btnPrev").disabled = true;
+                document.getElementById("btnNext").disabled = true;
+                return;
+            }
+
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const currentRows = filteredData.slice(startIndex, endIndex);
+
+            currentRows.forEach(row => {
+                const tr = document.createElement("tr");
+                // Orden de columnas exigido: Cédula | Nombre | Apellido
+                tr.innerHTML = `<td>${row[2]}</td><td>${row[0]}</td><td>${row[1]}</td>`;
+                tbody.appendChild(tr);
+            });
+
+            // Controles de botones
+            document.getElementById("pageIndicator").innerText = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById("btnPrev").disabled = currentPage === 1;
+            document.getElementById("btnNext").disabled = currentPage === totalPages;
+        }
+
+        function cambiarPagina(delta) {
+            currentPage += delta;
+            renderizarTabla();
+        }
+
+        // 4. Registrar Nuevo Dato
+        document.getElementById("registroForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const btn = document.getElementById("btnGuardar");
+            btn.innerText = "Guardando..."; btn.disabled = true;
+
+            const payload = {
+                nombre: document.getElementById("nombre").value,
+                apellido: document.getElementById("apellido").value,
+                cedula: document.getElementById("cedula").value,
+                email: email // Validado en Backend
+            };
+
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(res => {
+                if(res.estado === "exito") {
+                    document.getElementById("registroForm").reset();
+                    obtenerDatos(); // Recargar tabla automáticamente
+                } else {
+                    alert("Error: " + res.mensaje);
+                }
+            })
+            .finally(() => {
+                btn.innerText = "Registrar"; btn.disabled = false;
+            });
+        });
+
+        // 5. Inicialización y Autorefresco
+        obtenerDatos();
+        setInterval(obtenerDatos, 10000); // Se actualiza silenciosamente cada 10 segundos
+
+    </script>
+</body>
+</html>
